@@ -177,6 +177,14 @@ section[data-testid="stSidebar"] {
 }
 div[data-testid="stMetricValue"] { color: #f5f0ff !important; font-size: 28px !important; }
 label[data-testid="stWidgetLabel"] p { color: #6b5fa0 !important; font-size: 11px !important; text-transform: uppercase; letter-spacing: 1px; }
+            
+/* nuclear option — hide ALL buttons in top-left corner */
+.st-emotion-cache-czk5ss,
+.st-emotion-cache-1dp5vir,
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapsedControl"] {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
