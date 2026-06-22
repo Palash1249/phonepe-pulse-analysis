@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+import sqlite3
 
 st.set_page_config(
     page_title="PhonePe Pulse · India UPI Analytics",
@@ -22,8 +23,6 @@ section[data-testid="stSidebar"] { background-color: #160d2e; border-right: 1px 
 .block-container { padding: 2rem 2.5rem; max-width: 1400px; }
 .sidebar-brand { font-size: 20px; font-weight: 700; color: #a78bfa; letter-spacing: -0.5px; margin-bottom: 4px; }
 .sidebar-sub { font-size: 11px; color: #6b5fa0; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 24px; }
-.nav-item { padding: 10px 14px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-size: 13px; color: #7b6fa8; font-weight: 500; }
-.nav-item.active { background: #2d1f5e; color: #c4b5fd; }
 .page-eyebrow { font-size: 11px; font-weight: 600; color: #7c3aed; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
 .page-title { font-size: 36px; font-weight: 700; color: #f5f0ff; letter-spacing: -1px; line-height: 1.15; margin-bottom: 6px; }
 .page-subtitle { font-size: 14px; color: #7b6fa8; margin-bottom: 32px; }
@@ -37,31 +36,19 @@ section[data-testid="stSidebar"] { background-color: #160d2e; border-right: 1px 
 .section-title { font-size: 18px; font-weight: 600; color: #e9e0ff; margin-bottom: 16px; letter-spacing: -0.3px; }
 .insight-box { background: #1a1133; border: 1px solid #2a1f4e; border-left: 3px solid #7c3aed; border-radius: 8px; padding: 16px 20px; margin-bottom: 28px; font-size: 13px; color: #a99dc8; line-height: 1.6; }
 .insight-box strong { color: #c4b5fd; }
-.forecast-card { background: #1a1133; border: 1px solid #2a1f4e; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
-.forecast-qtr { font-size: 11px; font-weight: 600; color: #6b5fa0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-.forecast-val { font-size: 22px; font-weight: 700; color: #2dd4bf; }
-.forecast-range { font-size: 11px; color: #4b5563; margin-top: 4px; }
 .divider { border: none; border-top: 1px solid #2a1f4e; margin: 32px 0; }
 .stMultiSelect [data-baseweb="tag"] { background-color: #2d1f5e !important; color: #c4b5fd !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.components.v1.html("""
-<script>
-function hideSidebarToggle() {
-    const selectors = ['[data-testid="collapsedControl"]','button[aria-label="Close sidebar"]','button[aria-label="Open sidebar"]','button[aria-label="Collapse sidebar"]','button[kind="header"]'];
-    selectors.forEach(sel => { document.querySelectorAll(sel).forEach(el => { el.style.setProperty('display','none','important'); }); });
-}
-hideSidebarToggle();
-const interval = setInterval(hideSidebarToggle, 300);
-setTimeout(() => clearInterval(interval), 5000);
-</script>
-""", height=0)
+# ── base path — works locally and on Render/Streamlit Cloud ──────────────
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA = os.path.join(BASE, "data")
 
 @st.cache_data
 def load_data():
-    df_t = pd.read_csv("../data/agg_transactions.csv")
-    df_u = pd.read_csv("../data/agg_users.csv")
+    df_t = pd.read_csv(os.path.join(DATA, "agg_transactions.csv"))
+    df_u = pd.read_csv(os.path.join(DATA, "agg_users.csv"))
     df_t['state'] = df_t['state'].str.replace('-', ' ').str.title()
     df_u['state'] = df_u['state'].str.replace('-', ' ').str.title()
     df_t['amount_cr'] = df_t['amount'] / 1e7
@@ -72,11 +59,10 @@ def load_data():
 @st.cache_data
 def load_forecast():
     try:
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        fc   = pd.read_csv(os.path.join(base, "data", "forecast_combined.csv"), parse_dates=['ds'])
-        fc_m = pd.read_csv(os.path.join(base, "data", "manipur_forecast.csv"),  parse_dates=['ds'])
+        fc   = pd.read_csv(os.path.join(DATA, "forecast_combined.csv"), parse_dates=['ds'])
+        fc_m = pd.read_csv(os.path.join(DATA, "manipur_forecast.csv"),  parse_dates=['ds'])
         return fc, fc_m
-    except Exception as e:
+    except Exception:
         return None, None
 
 df_t, df_u = load_data()
@@ -111,7 +97,7 @@ with st.sidebar:
     st.markdown("---")
 
     if page == "📊  Overview":
-        years         = sorted(df_t['year'].unique())
+        years           = sorted(df_t['year'].unique())
         selected_years  = st.multiselect("Years", years, default=years)
         states          = sorted(df_t['state'].unique())
         selected_states = st.multiselect("States", states, default=states)
@@ -238,7 +224,6 @@ elif page == "🔮  Forecast":
     if fc is None:
         st.error("Forecast data not found. Please run notebooks/04_forecasting.ipynb first to generate the forecast CSVs.")
     else:
-        # ── forecast KPI cards ────────────────────────────────────────────
         future_rows = fc[fc['actual'].isna()].tail(4)
         last_actual = fc[fc['actual'].notna()]['actual'].iloc[-1]
 
@@ -264,7 +249,6 @@ elif page == "🔮  Forecast":
         </div>
         """, unsafe_allow_html=True)
 
-        # ── national forecast chart ───────────────────────────────────────
         st.markdown('<div class="section-label">National forecast</div>', unsafe_allow_html=True)
         st.markdown('<div class="section-title">India UPI transaction value — actual vs forecast</div>', unsafe_allow_html=True)
 
@@ -272,45 +256,27 @@ elif page == "🔮  Forecast":
         forecast_df = fc.copy()
 
         fig_fc = go.Figure()
-
-        # confidence band
         fig_fc.add_trace(go.Scatter(
             x=pd.concat([forecast_df['ds'], forecast_df['ds'][::-1]]),
             y=pd.concat([forecast_df['yhat_upper'], forecast_df['yhat_lower'][::-1]]),
             fill='toself', fillcolor='rgba(45,212,191,0.06)',
             line=dict(color='rgba(0,0,0,0)'), name='Confidence interval', showlegend=True
         ))
-
-        # forecast line
         fig_fc.add_trace(go.Scatter(
-            x=forecast_df['ds'], y=forecast_df['yhat'],
-            mode='lines', name='Forecast',
+            x=forecast_df['ds'], y=forecast_df['yhat'], mode='lines', name='Forecast',
             line=dict(color=TEAL, width=2, dash='dash')
         ))
-
-        # actual line
         fig_fc.add_trace(go.Scatter(
-            x=actual_df['ds'], y=actual_df['actual'],
-            mode='lines+markers', name='Actual',
-            line=dict(color=PURPLE, width=2.5),
-            marker=dict(size=5, color=PURPLE_LITE)
+            x=actual_df['ds'], y=actual_df['actual'], mode='lines+markers', name='Actual',
+            line=dict(color=PURPLE, width=2.5), marker=dict(size=5, color=PURPLE_LITE)
         ))
-
-        # split line
-        fig_fc.add_vline(
-            x=actual_df['ds'].max(),
-            line_dash="dot", line_color="#4b5563",
-            annotation_text="Forecast →",
-            annotation_font_color="#6b5fa0",
-            annotation_position="top right"
-        )
-
+        fig_fc.add_vline(x=actual_df['ds'].max(), line_dash="dot", line_color="#4b5563",
+            annotation_text="Forecast →", annotation_font_color="#6b5fa0", annotation_position="top right")
         fig_fc.update_xaxes(title_text="Quarter")
         fig_fc.update_yaxes(title_text="₹ Crores")
         chart_layout(fig_fc, 420)
         st.plotly_chart(fig_fc, use_container_width=True)
 
-        # ── Manipur forecast ──────────────────────────────────────────────
         if fc_m is not None:
             st.markdown('<hr class="divider">', unsafe_allow_html=True)
             st.markdown('<div class="section-label">State spotlight · Manipur</div>', unsafe_allow_html=True)
@@ -337,14 +303,10 @@ elif page == "🔮  Forecast":
             fig_m.add_trace(go.Scatter(
                 x=manip_actual['ds'], y=manip_actual['amount_cr'],
                 mode='lines+markers', name='Actual',
-                line=dict(color=PURPLE, width=2.5),
-                marker=dict(size=5, color=PURPLE_LITE)
+                line=dict(color=PURPLE, width=2.5), marker=dict(size=5, color=PURPLE_LITE)
             ))
-            fig_m.add_vline(
-                x=manip_actual['ds'].max(), line_dash="dot", line_color="#4b5563",
-                annotation_text="Forecast →", annotation_font_color="#6b5fa0",
-                annotation_position="top right"
-            )
+            fig_m.add_vline(x=manip_actual['ds'].max(), line_dash="dot", line_color="#4b5563",
+                annotation_text="Forecast →", annotation_font_color="#6b5fa0", annotation_position="top right")
             fig_m.update_xaxes(title_text="Quarter")
             fig_m.update_yaxes(title_text="₹ Crores")
             chart_layout(fig_m, 360)
@@ -356,11 +318,11 @@ elif page == "🔮  Forecast":
 elif page == "📋  SQL Insights":
     st.markdown('<div class="page-eyebrow">SQL Analysis · SQLite</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-title">Business SQL Queries</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">7 business-focused queries written in SQLite using window functions, CTEs, and JOINs</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">4 business-focused queries written in SQLite using window functions, CTEs, and JOINs</div>', unsafe_allow_html=True)
 
-    import sqlite3
+    db_path = os.path.join(DATA, "phonepe.db")
     try:
-        conn = sqlite3.connect("../data/phonepe.db")
+        conn = sqlite3.connect(db_path)
 
         queries = {
             "Top 10 states by total transaction value": """
@@ -402,7 +364,7 @@ elif page == "📋  SQL Insights":
         }
 
         for title, sql in queries.items():
-            st.markdown(f'<div class="section-label">Query</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-label">Query</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
             with st.expander("View SQL"):
                 st.code(sql.strip(), language="sql")
@@ -412,6 +374,6 @@ elif page == "📋  SQL Insights":
 
         conn.close()
     except Exception as e:
-        st.error(f"Database error: {e}. Make sure you've run notebook 03_sql_analysis.ipynb first.")
+        st.error(f"Database error: {e}. Make sure phonepe.db exists in the data folder.")
 
 st.markdown(f'<div style="font-size:11px;color:{TEXT_SEC};text-align:center;padding:12px 0;">PhonePe Pulse Analytics · Built with Python · Streamlit · Plotly · Prophet · SQLite</div>', unsafe_allow_html=True)
