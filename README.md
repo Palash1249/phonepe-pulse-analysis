@@ -121,6 +121,6 @@ streamlit run app.py
 
 ## Author
 
-Built by **Palash Halder** · [LinkedIn](www.linkedin.com/in/palashhalder07) · [GitHub](https://github.com/Palash1249)
+Built by **Palash Halder** · [LinkedIn](https://www.linkedin.com/in/palashhalder07/) · [GitHub](https://github.com/Palash1249)
 
 *Data sourced from the official [PhonePe Pulse GitHub repository](https://github.com/PhonePe/pulse) under CDLA-Permissive-2.0 license.*
