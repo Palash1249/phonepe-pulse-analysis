@@ -3,7 +3,7 @@
 > **Where should PhonePe focus merchant acquisition efforts in 2025?**
 > This project answers that question using 6 years of real transaction data, SQL analysis, and ML forecasting.
 
-🔗 **[Live Dashboard →](https://phonepe-pulse-analysis.onrender.com)** *([update this link after deployment](https://phonepe-pulse-analysis.onrender.com))*
+🔗 **[Live Dashboard →](https://phonepe-pulse-analysis.onrender.com)** *([https://phonepe-pulse-analysis.onrender.com](https://phonepe-pulse-analysis.onrender.com))*
 📁 **[Dataset](https://github.com/PhonePe/pulse)** · PhonePe Pulse GitHub (official, open-source)
 
 ---
